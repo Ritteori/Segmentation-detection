@@ -18,7 +18,7 @@ class RSNADataset(Dataset):
         return len(self.images_dirs)
     
     def __getitem__(self, index):
-        image_name = self.images_dir[index]
+        image_name = self.images_dirs[index]
         image_path = os.path.join(self.images_dir,image_name)
         mask_path = os.path.join(self.masks_dir,image_name)
         
@@ -34,5 +34,7 @@ class RSNADataset(Dataset):
         else:
             image = transforms.ToTensor()(image)
             mask = torch.from_numpy(mask / 255).unsqueeze(0).float()
+            
+        return image,mask
         
         
