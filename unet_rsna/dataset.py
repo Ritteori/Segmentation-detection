@@ -30,10 +30,12 @@ class RSNADataset(Dataset):
         if self.transform is not None:
             augmented = self.transform(image=image,mask=mask)
             image = augmented["image"]
-            mask = augmented["mask"]
+            mask = augmented["mask"].float() / 255.0
+            mask = mask.unsqueeze(0)
         else:
             image = transforms.ToTensor()(image)
-            mask = torch.from_numpy(mask / 255).unsqueeze(0).float()
+            mask = torch.from_numpy(mask).float() / 255.0
+            mask = mask.unsqueeze(0)
             
         return image,mask
         

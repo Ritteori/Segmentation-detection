@@ -1,6 +1,9 @@
 IMAGES_DIR = r'J:\ML_for_porfolio\segmentation\unet_rsna\data\images'
 MASKS_DIR = r'J:\ML_for_porfolio\segmentation\unet_rsna\data\masks'
 LR = 1e-4
-BATCH_SIZE = 64
+BATCH_SIZE = 16
 MEAN = [0.4920, 0.4920, 0.4920]
 STD = [0.2283, 0.2283, 0.2283]
+EPOCHS = 30
+LOG_PATH = r'J:\ML_for_porfolio\segmentation\unet_rsna\logs.csv'
+MODEL_PATH = r"J:\ML_for_porfolio\segmentation\unet_rsna\checkpoints"

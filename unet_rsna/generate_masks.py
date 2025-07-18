@@ -52,6 +52,6 @@ for patient_id, group in tqdm(info):
         bottom_left_x = x + width
         bottom_left_y = y + height
         
-        cv2.rectangle(mask,(top_right_x,top_right_y),(bottom_left_x,bottom_left_y),color=255,thickness=3)
+        cv2.rectangle(mask,(top_right_x,top_right_y),(bottom_left_x,bottom_left_y),color=255,thickness=-1)
         
     cv2.imwrite(os.path.join(MASKS_DIR, f"{patient_id}.png"), mask)
