@@ -57,7 +57,7 @@ def convert_xml_to_bboxes(xml_file:str, labels_dir:str):
         
         converted_bbox = convert_bbox((width,height),bbox)
         
-        yolo_line = f'{cls_id} ' + ''.join(f"{x:.6f}" for x in converted_bbox)
+        yolo_line = f'{cls_id} ' + ' '.join(f"{x:.6f}" for x in converted_bbox)
         yolo_lines.append(yolo_line)
         
     base_filename =  os.path.splitext(os.path.basename(xml_file))[0]
