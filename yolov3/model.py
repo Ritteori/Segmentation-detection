@@ -112,3 +112,79 @@ class DarkNet53(nn.Module):
         large = self.large(x)
         medium = self.medium(large)
         small = self.small(medium)
+        
+        return small, medium, large
+    
+class YOLOv3(nn.Module):
+    def init(self, img_shape:tuple, num_anchors=3, num_classes=20, *args, **kwargs):
+        super().init(*args, **kwargs)
+        self.backbone = DarkNet53(img_shape)
+        
+        self.small_conv = nn.Sequential(
+            ConvLayer(1024, 512, kernel_size=1, stride=1, padding=0),
+            ConvLayer(512, 1024, kernel_size=3, stride=1, padding=1),
+            ConvLayer(1024, 512, kernel_size=1, stride=1, padding=0),
+            ConvLayer(512, 1024, kernel_size=3, stride=1, padding=1),
+            ConvLayer(1024, 512, kernel_size=1, stride=1, padding=0)
+        )
+        self.pred_small = nn.Conv2d(512, num_anchors*(5 + num_classes), kernel_size=1)
+        
+        self.upsample1 = nn.Sequential(
+            nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2)
+        )
+        
+        self.medium_conv = nn.Sequential(
+            ConvLayer(768, 256, kernel_size=1, stride=1, padding=0),
+            ConvLayer(256, 512, kernel_size=3, stride=1, padding=1),
+            ConvLayer(512, 256, kernel_size=1, stride=1, padding=0),
+            ConvLayer(256, 512, kernel_size=3, stride=1, padding=1),
+            ConvLayer(512, 256, kernel_size=1, stride=1, padding=0)
+        )
+        self.pred_medium = nn.Conv2d(256, num_anchors*(5 + num_classes), kernel_size=1)
+        
+        self.upsample2 = nn.Sequential(
+            nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2)
+        )
+        
+        self.large_conv = nn.Sequential(
+            ConvLayer(384, 128, kernel_size=1, stride=1, padding=0),
+            ConvLayer(128, 256, kernel_size=3, stride=1, padding=1),
+            ConvLayer(256, 128, kernel_size=1, stride=1, padding=0),
+            ConvLayer(128, 256, kernel_size=3, stride=1, padding=1),
+            ConvLayer(256, 128, kernel_size=1, stride=1, padding=0)
+        )
+        self.pred_large = nn.Conv2d(128, num_anchors*(5 + num_classes), kernel_size=1)
+
+        self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m,nn.ConvTranspose2d):
+                nn.init.kaiming_normal_(m.weight,nonlinearity='leaky_relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+            elif isinstance(m,nn.BatchNorm2d):
+                nn.init.ones_(m.weight)
+                nn.init.zeros_(m.bias)
+
+    def forward(self, x):
+        small, medium, large = self.backbone(x)
+        
+        x_small = self.small_conv(small)
+        out_small = self.pred_small(x_small)
+
+        x_up = self.upsample1(x_small)  # 13x13x512 -> 26x26x256
+        x_medium = torch.cat([x_up, medium], dim=1) # 26x26x768
+        x_medium = self.medium_conv(x_medium) # 26x26x256
+        out_medium = self.pred_medium(x_medium) 
+        
+        x_up = self.upsample2(x_medium)  # 26x26x256 -> 52x52x128
+        x_large = torch.cat([x_up, large], dim=1) # 52x52x384
+        x_large = self.large_conv(x_large) # 52x52x128
+        out_large = self.pred_large(x_large)
+
+        return out_small, out_medium, out_large
