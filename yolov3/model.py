@@ -1,9 +1,9 @@
 import torch
 from torch import nn
 
-class ConvLayer(nn.Module):
-    def init(self, in_channels, out_channels, kernel_size, stride, padding, n_layers=1, *args, **kwargs):
-        super().init(*args, **kwargs)
+class ConvLayer(nn.Module):    
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, n_layers=1, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         
         self.layers = nn.ModuleList()
 
@@ -36,8 +36,8 @@ class ConvLayer(nn.Module):
     
 
 class ResidualBlock(nn.Module):
-    def init(self, in_channels, kernel_size, stride, padding, n_layers, use_residual = True, *args, **kwargs):
-        super().init(*args, **kwargs)
+    def __init__(self, in_channels, kernel_size, stride, padding, n_layers, use_residual = True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.use_residual = use_residual
         self.layers = nn.ModuleList()
@@ -74,8 +74,8 @@ class ResidualBlock(nn.Module):
     
 
 class DarkNet53(nn.Module):
-    def init(self, img_shape:tuple, *args, **kwargs):
-        super().init(*args, **kwargs)
+    def __init__(self, img_shape:tuple, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.large = nn.Sequential(
 
@@ -116,8 +116,8 @@ class DarkNet53(nn.Module):
         return small, medium, large
     
 class YOLOv3(nn.Module):
-    def init(self, img_shape:tuple, num_anchors=3, num_classes=20, *args, **kwargs):
-        super().init(*args, **kwargs)
+    def __init__(self, img_shape:tuple, num_anchors=3, num_classes=20, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.backbone = DarkNet53(img_shape)
         
         self.small_conv = nn.Sequential(
@@ -142,7 +142,7 @@ class YOLOv3(nn.Module):
             ConvLayer(256, 512, kernel_size=3, stride=1, padding=1),
             ConvLayer(512, 256, kernel_size=1, stride=1, padding=0)
         )
-        self.pred_medium = nn.Conv2d(256, num_anchors*(5 + num_classes), kernel_size=1)
+        self.pred_medium = nn.Conv2d(256, num_anchors*(5 + num_classes), kernel_size=1) # tx, ty, tw, th, obj_score + probs
         
         self.upsample2 = nn.Sequential(
             nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2),
@@ -188,3 +188,4 @@ class YOLOv3(nn.Module):
         out_large = self.pred_large(x_large)
 
         return out_small, out_medium, out_large
+    

@@ -2,6 +2,7 @@ import os
 import xml
 import xml.etree
 import xml.etree.ElementTree
+import torch
 
 
 VOC_CLASSES = [
@@ -76,4 +77,39 @@ def convert_all_xmls_to_yolo(annotations_dir:str,labels_dir:str):
         convert_xml_to_bboxes(full_path,labels_dir)
         
     print("Convertation is ready")
+
+
+def yolo_collate_fn(batch):
+    images, boxes, classes = zip(*batch)  # распаковать кортеж
+
+    images = torch.stack(images)  # собрать батч тензоров
+
+    targets = []
+    for b, c in zip(boxes, classes):
+        b = torch.tensor(b, dtype=torch.float32)
+        c = torch.tensor(c, dtype=torch.float32).unsqueeze(1)
+        target = torch.cat([b, c], dim=1)  # [N,5]
+        targets.append(target)
+
+    return images, targets
+
+
+def get_best_anchor_idxs(gt_boxes_wh, anchors_wh):
+
+    # gt_boxes_wh : [N,2], anchors_wh : [A,2] , где 2 - (width,height)
+
+    gt_boxes_wh = gt_boxes_wh.unsqueeze(1)
+    anchors_wh = anchors_wh.unsqueeze(0)
+    
+    inter_wh = torch.min(gt_boxes_wh, anchors_wh)
+    inter_area = inter_wh[..., 0] * inter_wh[..., 1]
+    
+    area_gt = gt_boxes_wh[...,0] *  gt_boxes_wh[...,1]
+    area_anchor = anchors_wh[...,0] * anchors_wh[...,1]
+    unioun_area = area_gt + area_anchor - inter_area
+    
+    iou = inter_area / (unioun_area + 1e-6)
+    best_anchor = torch.argmax(iou,dim=1)
+    
+    return best_anchor, iou
         

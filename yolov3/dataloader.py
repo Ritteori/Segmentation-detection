@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 import albumentations as A
 from dataset import YoloDataset
 from config import LABELS_DIR,IMAGES_DIR,BATCH_SIZE
+from utils import yolo_collate_fn
 
 transforms = A.Compose([
     A.Resize(416,416),
@@ -16,5 +17,5 @@ dataloader = DataLoader(
     dataset=dataset,
     batch_size=BATCH_SIZE,
     shuffle=True,
-    collate_fn=lambda x: tuple(zip(*x))
+    collate_fn=yolo_collate_fn
 )
