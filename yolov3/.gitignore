@@ -1,4 +1,5 @@
 /VOC2012
+/models
 /data
 /unet_rsna/checkpoints
 # Byte-compiled / optimized / DLL files

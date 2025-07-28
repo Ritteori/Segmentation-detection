@@ -65,13 +65,16 @@ class YOLOLoss(nn.Module):
                 best_anchor_idxs, _ = get_best_anchor_idxs(gt_wh, anchors_wh)  # [num_boxes]
 
                 for i, t in enumerate(target):
-                    gx, gy, gw, gh, cls = t[0], t[1], t[2], t[3], int(t[4])
+                    gx, gy, gw, gh, cls = t[0], t[1], t[2], t[3], int(t[4]) - 1
                     best_anchor = best_anchor_idxs[i]
 
                     gx_cell = gx * S
                     gy_cell = gy * S
                     cell_x = int(gx_cell)
                     cell_y = int(gy_cell)
+                    
+                    assert 0 <= cell_x < S, f"cell_x={cell_x} out of range for S={S}"
+                    assert 0 <= cell_y < S, f"cell_y={cell_y} out of range for S={S}"
 
                     obj_target[b, best_anchor, cell_y, cell_x] = 1
                     x_target[b, best_anchor, cell_y, cell_x] = gx_cell - cell_x

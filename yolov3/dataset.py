@@ -74,15 +74,18 @@ class YoloDataset(Dataset):
             
             boxes = []
             
+            new_h, new_w = image.shape[1], image.shape[2] 
+            
             for box in bboxes_absolute:
-                
-                x_min,y_min,x_max,y_max = box
-                
-                x_center = (x_max + x_min) / width
-                y_center = (y_max + y_min) / height
-                width = (x_max - x_min) / width
-                height = (y_max - y_min) / height
-                boxes.append([x_center, y_center, width, height])
+                x_min, y_min, x_max, y_max = box
+
+                x_center = (x_max + x_min) / 2.0 / new_w
+                y_center = (y_max + y_min) / 2.0 / new_h
+
+                box_w = (x_max - x_min) / new_w
+                box_h = (y_max - y_min) / new_h
+
+                boxes.append([x_center, y_center, box_w, box_h])
             
             boxes = np.array(boxes, dtype=np.float32)
         else:

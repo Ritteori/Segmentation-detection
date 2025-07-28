@@ -17,5 +17,6 @@ dataloader = DataLoader(
     dataset=dataset,
     batch_size=BATCH_SIZE,
     shuffle=True,
-    collate_fn=yolo_collate_fn
+    collate_fn=yolo_collate_fn,
+    pin_memory=True
 )
