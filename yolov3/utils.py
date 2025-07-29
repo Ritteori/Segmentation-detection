@@ -6,6 +6,7 @@ import torch
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 import torchvision
+import numpy as np
 from config import ANCHORS
 
 VOC_CLASSES = [
@@ -249,8 +250,6 @@ def decode_predictions(preds, anchors, num_classes=20, conf_threshold=0.5, iou_t
 
     return model_boxes
 
-import numpy as np
-
 def show_results(model, dataloader, device, anchors, epoch, num_images=9, conf_threshold=0.5):
     model.eval()
     images_shown = 0
@@ -306,10 +305,77 @@ def show_results(model, dataloader, device, anchors, epoch, num_images=9, conf_t
                 break
 
     plt.tight_layout()
-    plt.savefig(fr'J:\ML_for_porfolio\segmentation\yolov3\results\epoch_{epoch + 1}.png')
+    plt.savefig(fr'J:\ML_for_porfolio\segmentation\yolov3\results\epoch_{epoch}.png')
     model.train()
 
+def calculate_iou(box1, box2):
+    """
+    box1, box2: [x1, y1, x2, y2]
+    """
+    xA = max(box1[0], box2[0])
+    yA = max(box1[1], box2[1])
+    xB = min(box1[2], box2[2])
+    yB = min(box1[3], box2[3])
 
-            
-            
-        
+    interArea = max(0, xB - xA) * max(0, yB - yA)
+
+    box1Area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2Area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+    iou = interArea / (box1Area + box2Area - interArea + 1e-6)
+    return iou
+
+def calculate_mean_iou(pred_boxes, target_boxes, iou_threshold=0.5):
+    """
+    pred_boxes: List[[x1, y1, x2, y2, conf, class]]
+    target_boxes: Tensor[N, 5] in YOLO format: x, y, w, h, class (normalized)
+    """
+    if len(pred_boxes) == 0 or target_boxes.size(0) == 0:
+        return 0.0
+
+    boxes = target_boxes.clone()
+    x, y, w, h = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+    boxes_xyxy = torch.stack([
+        x - w / 2,
+        y - h / 2,
+        x + w / 2,
+        y + h / 2,
+        boxes[:, 4]
+    ], dim=1)
+
+    matches = 0
+    for pred in pred_boxes:
+        pred_box = pred[:4]
+        pred_class = pred[5]
+        for tgt in boxes_xyxy:
+            tgt_box = tgt[:4]
+            tgt_class = tgt[4]
+            if pred_class == tgt_class:
+                iou = calculate_iou(pred_box, tgt_box.tolist())
+                if iou >= iou_threshold:
+                    matches += 1
+                    break
+
+    return matches / max(len(target_boxes), 1)
+
+def eval(model, dataloader, device, anchors, num_images=9, conf_threshold=0.5, iou_threshold=0.5):
+    model.eval()
+    iou_scores = []
+
+    with torch.no_grad():
+        for images, targets in tqdm(dataloader):
+            images = images.to(device)
+            targets = [t.to(device) for t in targets]
+
+            preds = model(images)
+            bboxes_batch = decode_predictions(preds, anchors, device=device, conf_threshold=conf_threshold)
+
+            for idx in range(len(images)):
+                pred_boxes = bboxes_batch[idx]
+                target_boxes = targets[idx]  # Tensor[N, 5]
+                iou = calculate_mean_iou(pred_boxes, target_boxes, iou_threshold)
+                iou_scores.append(iou)
+
+    avg_iou = sum(iou_scores) / len(iou_scores)
+    print(f"Mean IoU: {avg_iou:.4f}")
+    return avg_iou
